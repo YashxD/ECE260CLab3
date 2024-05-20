@@ -92,7 +92,7 @@ int main( void )
 	const int FILTER_LEN = 64;     // Size of filter
 	const int PADDED_SIZE = SAMPLES + 2*FILTER_LEN; // Size of padded input
 	const int OUTPUT_SIZE = SAMPLES + FILTER_LEN;   // Size of output data
-
+	cudaError_t err;
 	
 	vector<Profile> profiler;
 
@@ -107,15 +107,42 @@ int main( void )
 	float* coeffs;
 	float* output2;
 
+	float* d_paddedInput;
+	float* d_coeffs;
+	float* d_output2;
+
 	// TODO Replace by CUDA unified memory
 	coeffs      = (float*)malloc(FILTER_LEN * sizeof(float));
 	paddedInput = (float*)malloc(PADDED_SIZE * sizeof(float));
 	output2     = (float*)malloc(OUTPUT_SIZE * sizeof(float));
 
+	err = cudaMalloc(&d_coeffs, FILTER_LEN * sizeof(float));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
+        exit(1);
+    }
+
+	err = cudaMalloc(&d_paddedInput, PADDED_SIZE * sizeof(float));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
+        exit(1);
+    }
+
+	err = cudaMalloc(&d_output2, OUTPUT_SIZE * sizeof(float));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
+        exit(1);
+    }
+
 
 	// Initialize coefficients
 	designLPF(coeffs, FILTER_LEN, 44.1, 2.0);
 
+    err = cudaMemcpy(d_coeffs, coeffs, FILTER_LEN * sizeof(float), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR 143: cudaMemCpy failed!\n");
+        exit(1);
+    }
 
 	LinuxTimer timer;
 
@@ -148,6 +175,14 @@ int main( void )
 
 		profiler.back().time_init = timer.getElapsed() / 1000000.f;
 
+		err = cudaMemcpy(d_paddedInput, paddedInput, PADDED_SIZE * sizeof(float), cudaMemcpyHostToDevice);
+    	if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR 180: cudaMemCpy failed!\n");
+        exit(1);
+    	}
+
+		// cudaFuncSetAttribute(fir_kernel2, cudaFuncAttributePreferredSharedMemoryCarveout,cudaSharedmemCarveoutMaxShared);
+    	// checkCUDAError("Error seting shared memory to 64K carveout");
 
 		// FIR on CPU
 		timer.start();
@@ -156,12 +191,20 @@ int main( void )
 
 		profiler.back().time_cpu = timer.getElapsed() / 1000000.f;
 
+
 		// FIR on GPU
 		timer.start();
-		fir_gpu(coeffs, paddedInput, output2, PADDED_SIZE, FILTER_LEN);
+		fir_gpu(d_coeffs, d_paddedInput, d_output2, PADDED_SIZE, FILTER_LEN);
 		timer.stop();
 
 		profiler.back().time_gpu = timer.getElapsed() / 1000000.f;
+
+		//Copy output from device to host
+		// err = cudaMemcpy(d_output2, output2, OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+    	// if (err != cudaSuccess) {
+        // fprintf(stderr, "GPU_ERROR 202: cudaMemCpy failed!\n");
+        // exit(1);
+    	// }
 
 		timer.start();
 		
@@ -180,8 +223,8 @@ int main( void )
 
 
 		Profile avg = computeProfileAverage(profiler, 20);
-		printf("Time Init: %.2fms  Time CPU: %.2fms  Time GPU: %.2fms  Time RMSE: %.2fms  Time total: %.2fms  RMSE: %.3f\n",
-				avg.time_init, avg.time_cpu, avg.time_gpu, avg.time_rmse, avg.time_total, sqrt(mse));
+		printf("Iteration: %d, Time Init: %.2fms  Time CPU: %.2fms  Time GPU: %.2fms  Time RMSE: %.2fms  Time total: %.2fms  RMSE: %.3f\n",
+				nruns, avg.time_init, avg.time_cpu, avg.time_gpu, avg.time_rmse, avg.time_total, sqrt(mse));
 		
 
 		// Print result
@@ -197,6 +240,9 @@ int main( void )
 	}
 
 	// TODO free with cuda
+	cudaFree(d_paddedInput);
+	cudaFree(d_output2);
+	cudaFree(d_coeffs);
 	free(paddedInput);
 	free(output2);
 	free(coeffs);
