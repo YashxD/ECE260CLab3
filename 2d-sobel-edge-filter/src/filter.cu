@@ -9,7 +9,61 @@ using namespace std;
 __global__
 void kernel_sobel_filter(const uchar * input, uchar * output, const uint height, const uint width)
 {
-	// TODO
+	const int sobel_x[3][3] = {
+		{-1, 0, 1},
+		{-2, 0, 2},
+		{-1, 0, 1}
+	};
+	const int sobel_y[3][3]  = {
+		{-1, -2, -1},
+		{0,   0,  0},
+		{1,   2,  1}
+	};
+
+	int tx = threadIdx.x;
+    int bx = blockIdx.x;
+    
+    int bs = blockDim.x;
+    int gs = gridDim.x;
+
+    int tid = bs*bx + tx;
+
+	for (uint y = bx + 1; y < height - 1; y = y + gs)
+	{
+		for (uint x = tx + 1; x < width - 1; x = x + bs)
+		{
+
+			const int pixel_x = (int) (
+					(sobel_x[0][0] * input[x-1 + (y-1) * width]) + 
+					(sobel_x[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_x[0][2] * input[x+1 + (y-1) * width]) +
+					(sobel_x[1][0] * input[x-1 + (y  ) * width]) + 
+					(sobel_x[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_x[1][2] * input[x+1 + (y  ) * width]) +
+					(sobel_x[2][0] * input[x-1 + (y+1) * width]) + 
+					(sobel_x[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_x[2][2] * input[x+1 + (y+1) * width])
+					);
+			const int pixel_y = (int) (
+					(sobel_y[0][0] * input[x-1 + (y-1) * width]) + 
+					(sobel_y[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_y[0][2] * input[x+1 + (y-1) * width]) +
+					(sobel_y[1][0] * input[x-1 + (y  ) * width]) + 
+					(sobel_y[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_y[1][2] * input[x+1 + (y  ) * width]) +
+					(sobel_y[2][0] * input[x-1 + (y+1) * width]) + 
+					(sobel_y[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_y[2][2] * input[x+1 + (y+1) * width])
+					);
+
+			float magnitude = sqrt((float)(pixel_x * pixel_x + pixel_y * pixel_y));
+
+			if (magnitude < 0){ magnitude = 0; }
+			if (magnitude > 255){ magnitude = 255; }
+
+			output[x + y * width] = magnitude;
+		}
+	}
 }
 
 inline int divup(int a, int b)
@@ -34,8 +88,8 @@ void sobel_filter_gpu(const uchar * input, uchar * output, const uint height, co
 	const int grid_x = 64;
 	const int grid_y = 64;
 
-	dim3 grid(1, 1, 1);  // TODO
-	dim3 block(1, 1, 1); // TODO
+	dim3 grid(64, 1, 1);  // TODO
+	dim3 block(64, 1, 1); // TODO
 
 	timer.start();
 	kernel_sobel_filter<<<grid, block>>>(input, output, height, width);

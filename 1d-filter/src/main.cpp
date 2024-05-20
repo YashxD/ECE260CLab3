@@ -199,12 +199,12 @@ int main( void )
 
 		profiler.back().time_gpu = timer.getElapsed() / 1000000.f;
 
-		//Copy output from device to host
-		// err = cudaMemcpy(d_output2, output2, OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
-    	// if (err != cudaSuccess) {
-        // fprintf(stderr, "GPU_ERROR 202: cudaMemCpy failed!\n");
-        // exit(1);
-    	// }
+		// Copy output from device to host
+		err = cudaMemcpy(output2, d_output2, OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+    	if (err != cudaSuccess) {
+        fprintf(stderr, "GPU_ERROR 202: cudaMemCpy failed!\n");
+        exit(1);
+    	}
 
 		timer.start();
 		

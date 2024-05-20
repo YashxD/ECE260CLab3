@@ -14,13 +14,23 @@ void kernel_filter(const uchar * input, uchar * output, const uint height, const
 	// TODO: Implement a blur filter for the camera (averaging an NxN array of pixels
 
   // uint8_t filterSize = 3;
+  	int tx = threadIdx.x;
+    int bx = blockIdx.x;
+    
+    int bs = blockDim.x;
+    int gs = gridDim.x;
+
+    int tid = bs*bx + tx;
+	int threads = bs*gs;
   uint16_t kernelSum = 0;
 
-  for (int i = FILTER_LIM; i < height + FILTER_LIM; i++) {
-    for (int j = FILTER_LIM; j < width + FILTER_LIM; j++) {
+  for (int i = FILTER_LIM + bx; i < height + FILTER_LIM; i = i + gs) {
+    for (int j = FILTER_LIM + tx; j < width + FILTER_LIM; j = j + bs) {
       kernelSum = 0;
       // Add all the elements to get the sum
+	  #pragma unroll
       for (int ii = i - FILTER_LIM; ii < i + FILTER_LIM; ii++) {
+		#pragma unroll
         for (int jj = j - FILTER_LIM; jj < j + FILTER_LIM; jj++) {
           kernelSum += input[(ii * width) + jj];
         }
@@ -49,8 +59,8 @@ void filter_gpu(const uchar * input, uchar * output, const uint height, const ui
 	const int grid_x = 64;
 	const int grid_y = 64;
 
-	dim3 grid(1, 1, 1);  // TODO
-	dim3 block(1, 1, 1); // TODO
+	dim3 grid(64, 1, 1);  // TODO
+	dim3 block(256, 1, 1); // TODO
 
 	timer.start();
 	kernel_filter<<<grid, block>>>(input, output, height, width);

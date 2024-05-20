@@ -13,7 +13,7 @@ using namespace cv;
 
 int main(int argc, const char * argv[])
 {
-	VideoCapture cap("input.raw"); 
+	VideoCapture cap("src/input.raw"); 
 	//VideoCapture cap(1); //output of ls /dev/video* will display available video devices and their indices
 
 	int WIDTH  = 768;
@@ -101,8 +101,8 @@ int main(int argc, const char * argv[])
 		// Display results
 		if(gray.cols <= 1024 || gray.rows <= 1024)
 		{
-			imshow("Input", gray);
-			imshow("Filter", out);
+			// imshow("Input", gray);
+			// imshow("Filter", out);
 			if(count <= 1) { moveWindow("Filter", WIDTH, 0); }
 		}
 

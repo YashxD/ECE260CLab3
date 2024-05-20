@@ -156,8 +156,8 @@ int main(int argc, const char * argv[])
 		// Display results
 		if(gray.cols <= 1024 || gray.rows <= 1024)
 		{
-			imshow("Input", gray);
-			imshow("Sobel", sobel_out);
+			// imshow("Input", gray);
+			// imshow("Sobel", sobel_out);
 			if(count <= 1) { moveWindow("Sobel", WIDTH, 0); }
 		}
 
