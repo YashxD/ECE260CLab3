@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(projectName 2dBlurFilter)
+set(projectExe ${projectName}.out)
 project(${projectName})
 
 find_package(CUDA 12.2 REQUIRED)
@@ -17,11 +18,11 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories("${CUDA_INCLUDE_DIRS}")
 
 add_executable(
-  ${projectName}
+  ${projectExe}
   src/filter.cu
   src/main.cpp
   inc/cuda_timer.h
   inc/filter.h
   inc/timer.h)
 
-target_link_libraries(${projectName} ${OpenCV_LIBS})
+target_link_libraries(${projectExe} ${OpenCV_LIBS})
