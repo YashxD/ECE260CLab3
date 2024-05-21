@@ -13,33 +13,27 @@ extern __shared__ float smem[];
 __global__
 void fir_kernel1(const float *coeffs, const float *input, float *output, int length, int filterLength)
 {
-	int tx = threadIdx.x;
-    int bx = blockIdx.x;
-    
-    int bs = blockDim.x;
-    int gs = gridDim.x;
+  float acc = 0;
 
-    int tid = bs*bx + tx;
+	int tx = threadIdx.x;
+  int bx = blockIdx.x;
+  int bs = blockDim.x;
+  int gs = gridDim.x;
+
+  int tid = bs*bx + tx;
 	int threads = bs*gs;
 
-	// Apply the filter to each input sample
-	// for (int n = bx; n < length-filterLength; n = n + gs )
-	for (int n = tid; n < length-filterLength; n = n + threads )
-	{
+	for (int n = tid; n < length-filterLength; n = n + threads ) {
 		__syncthreads();
-		// Calculate output n
-		float acc = 0;
-		// for (int k = tx; k < filterLength; k = k + bs)
-		for (int k = 0; k < filterLength; k++)
-
-		{
+		acc = 0;
+		for (int k = 0; k < filterLength; k++) {
+      // Apply the filter to each input sample
 			acc += coeffs[k] * input[n + k];
 		}
 
 		__syncthreads();
 		output[n] = acc;
 	}
-
 }
 
 
@@ -52,40 +46,26 @@ void fir_kernel2(const float *coeffs, const float *input, float *output, int len
 
 	float* sm_coeffs = &smem[0];
 	int tx = threadIdx.x;
-    int bx = blockIdx.x;
-    
-    int bs = blockDim.x;
-    int gs = gridDim.x;
+  int bx = blockIdx.x;
+  int bs = blockDim.x;
+  int gs = gridDim.x;
 
 	int tid = bs*bx + tx;
 	int threads = bs*gs;
 
-	// for (int k = tx; k < filterLength; k = k + bs){
-		sm_coeffs[tx] = coeffs[tx];
-	// }
+  // Each thread copies an element of the coeffiecient array into the shared memory
+  sm_coeffs[tx] = coeffs[tx];
 
 	__syncthreads();
 
-	// for (int n = bx; n < length-filterLength; n = n + gs )
-	// for (int n = tid; n < length-filterLength; n = n + threads )
+  float acc = 0;
+  for (int k = 0; k < filterLength; k++) {
+    acc += sm_coeffs[k] * input[tid + k];
+  }
+  __syncthreads();
 
-	// {
-		// Calculate output n
-		float acc = 0;
-		// for (int k = tx; k < filterLength; k = k + bs)
-		for (int k = 0; k < filterLength; k++)
+  output[tid] = acc;
 
-		{
-			acc += sm_coeffs[k] * input[tid + k];
-		}
-		__syncthreads();
-
-		output[tid] = acc;
-
-	// }
-
-
-	
 }
 
 
@@ -94,48 +74,32 @@ void fir_kernel2(const float *coeffs, const float *input, float *output, int len
 __global__
 void fir_kernel3(const float *coeffs, const float *input, float *output, int length, int filterLength)
 {
+  float acc = 0;
 	float* sm_coeffs = &smem[0];
 	float* sm_inputs = &smem[filterLength];
 
 	int tx = threadIdx.x;
-    int bx = blockIdx.x;
-    
-    int bs = blockDim.x;
-    int gs = gridDim.x;
+  int bx = blockIdx.x;
+  int bs = blockDim.x;
+  int gs = gridDim.x;
 
 	int tid = bs*bx + tx;
 	int threads = bs*gs;
 
-	// for (int k = tx; k < filterLength; k = k + bs){
-		sm_coeffs[tx] = coeffs[tx];
-	// }
-
-	// for (int k = tx; k <= length/gs; k = k + bs){
-		sm_inputs[tx] = input[bx*bs + tx];
-		sm_inputs[tx+bs] = input[(bx+1)*bs + tx];
-	// }
+  // Each thread copies an element of the coeffiecient array into the shared memory
+  // and two elements of the input array (64 threads would need 128 input elements)
+  sm_coeffs[tx] = coeffs[tx];
+  sm_inputs[tx] = input[bx*bs + tx];
+  sm_inputs[tx+bs] = input[(bx+1)*bs + tx];
 
 	__syncthreads();
+  for (int k = 0; k < filterLength; k++) {
+    acc += sm_coeffs[k] * sm_inputs[tx + k];
+  }
 
-	// input += tx + BLOCK_SIZE;
-	// output += tx + BLOCK_SIZE;
+  __syncthreads();
+  output[bx*bs + tx] = acc;
 
-	// for (int n = bx; n < length-filterLength; n = n + gs ){
-	// for (int n = tx; n < length-filterLength; n = n + bs ){
-		// Calculate output n
-		float acc = 0;
-		for (int k = 0; k < filterLength; k++)
-		// for (int k = 0; k < filterLength; k++)
-		{
-			acc += sm_coeffs[k] * sm_inputs[tx + k];
-		}
-
-		__syncthreads();
-		// output[n + blockIdx.x * bs] = acc;
-		output[bx*bs + tx] = acc;
-	// }
-
-	
 }
 
 
@@ -167,6 +131,10 @@ void fir_gpu(const float *coeffs, const float *input, float *output, int length,
     dim3 grid(num_blocks, 1, 1);
 
 	timer.start();
+
+  // Select the kernel to be run!
+  // Uncomment each kernel as required.
+  // NOTE: Only ONE kernel should be active at a time!
 	fir_kernel1<<<num_blocks, block_size>>>(coeffs, input, output, length, filterLength);
 	// fir_kernel2<<<num_blocks, block_size, 1024*48>>>(coeffs, input, output, length, filterLength);
 	// fir_kernel3<<<num_blocks, block_size, 1024*48>>>(coeffs, input, output, length, filterLength);
@@ -177,7 +145,7 @@ void fir_gpu(const float *coeffs, const float *input, float *output, int length,
 	CudaCheckError();
 
 	// float time_gpu_kernel1 = timer.getElapsed();
-		
+
 	// timer.start();
 	// fir_kernel2<<<num_blocks, block_size>>>(coeffs, input, output, length, filterLength);
 	// timer.stop();

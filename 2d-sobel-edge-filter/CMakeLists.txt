@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(projectName 2dSorbelEdgeFilter)
+set(projectName 2dSobelEdgeFilter)
 set(projectExe ${projectName}.out)
 project(${projectName})
 

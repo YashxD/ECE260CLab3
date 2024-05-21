@@ -20,39 +20,33 @@ enum SobelType
 
 int main(int argc, const char * argv[])
 {
-    //Uncomment the following line to use the external camera.
-	//VideoCapture cap(1); 
+  //Uncomment the following line to use the external camera.
+	//VideoCapture cap(1);
 
-    //Comment this line if you're using the external camera.
-    VideoCapture cap("input.raw");
+  //Comment this line if you're using the external camera.
+  VideoCapture cap("input.raw");
 
 	int WIDTH  = 768;
 	int HEIGHT = 768;
 
 	SobelType sobel_type = SOBEL_GPU;
 
-
 	// 1 argument on command line: WIDTH = HEIGHT = arg
-	if(argc >= 2)
-	{
+	if(argc >= 2) {
 		WIDTH = atoi(argv[1]);
 		HEIGHT = WIDTH;
 	}
 	// 2 arguments on command line: WIDTH = arg1, HEIGHT = arg2
-	if(argc >= 3)
-	{
+	if(argc >= 3) {
 		HEIGHT = atoi(argv[2]);
 	}
 
 	// 3 arguments on command line: WIDTH = arg1, HEIGHT = arg2, type = arg3
-	if(argc >= 4)
-	{
+	if(argc >= 4) {
 		sobel_type = static_cast<SobelType>(atoi(argv[3]));
 	}
 
-
-	switch(sobel_type)
-	{
+	switch(sobel_type) {
 		case SOBEL_OPENCV:
 			cout << "Using OpenCV" << endl;
 			break;
@@ -64,7 +58,6 @@ int main(int argc, const char * argv[])
 			break;
 	}
 
-
 	// Profiling
 	LinuxTimer timer;
 	LinuxTimer fps_counter;
@@ -73,10 +66,10 @@ int main(int argc, const char * argv[])
 	// Allocate memory
 	unsigned char* gray_ptr;
 	unsigned char* sobel_out_ptr;
-	
+
 	cudaMallocManaged(&gray_ptr, WIDTH*HEIGHT*sizeof(unsigned char));
 	cudaMallocManaged(&sobel_out_ptr, WIDTH*HEIGHT*sizeof(unsigned char));
-	
+
 	Mat gray      = Mat(HEIGHT, WIDTH, CV_8U, gray_ptr);
 	Mat sobel_out = Mat(HEIGHT, WIDTH, CV_8U, sobel_out_ptr);
 
@@ -85,7 +78,6 @@ int main(int argc, const char * argv[])
 
 	char key = 0;
 	int count = 0;
-
 
 	// Main loop
 	while(key != 'q')
@@ -135,9 +127,6 @@ int main(int argc, const char * argv[])
 
 		size_t time_sobel = timer.getElapsed();
 
-
-
-
 		count++;
 
 		// FPS count
@@ -152,20 +141,16 @@ int main(int argc, const char * argv[])
 			cout << "FPS = " << fps << endl;
 		}
 
-
 		// Display results
 		if(gray.cols <= 1024 || gray.rows <= 1024)
 		{
-			// imshow("Input", gray);
-			// imshow("Sobel", sobel_out);
+			imshow("Input", gray);
+			imshow("Sobel", sobel_out);
 			if(count <= 1) { moveWindow("Sobel", WIDTH, 0); }
 		}
 
-
-
 		key = waitKey(1);
 	}
-
 
 	cudaFree(gray_ptr);
 	cudaFree(sobel_out_ptr);

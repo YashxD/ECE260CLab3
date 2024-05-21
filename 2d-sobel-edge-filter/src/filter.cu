@@ -22,44 +22,44 @@ void kernel_sobel_filter(const uchar * input, uchar * output, const uint height,
 
 	int tx = threadIdx.x;
     int bx = blockIdx.x;
-    
+
     int bs = blockDim.x;
     int gs = gridDim.x;
 
     int tid = bs*bx + tx;
 
-	for (uint y = bx + 1; y < height - 1; y = y + gs)
-	{
-		for (uint x = tx + 1; x < width - 1; x = x + bs)
-		{
-
+	for (uint y = bx + 1; y < height - 1; y = y + gs) {
+		for (uint x = tx + 1; x < width - 1; x = x + bs) {
 			const int pixel_x = (int) (
-					(sobel_x[0][0] * input[x-1 + (y-1) * width]) + 
-					(sobel_x[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_x[0][0] * input[x-1 + (y-1) * width]) +
+					(sobel_x[0][1] * input[x   + (y-1) * width]) +
 					(sobel_x[0][2] * input[x+1 + (y-1) * width]) +
-					(sobel_x[1][0] * input[x-1 + (y  ) * width]) + 
-					(sobel_x[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_x[1][0] * input[x-1 + (y  ) * width]) +
+					(sobel_x[1][1] * input[x   + (y  ) * width]) +
 					(sobel_x[1][2] * input[x+1 + (y  ) * width]) +
-					(sobel_x[2][0] * input[x-1 + (y+1) * width]) + 
-					(sobel_x[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_x[2][0] * input[x-1 + (y+1) * width]) +
+					(sobel_x[2][1] * input[x   + (y+1) * width]) +
 					(sobel_x[2][2] * input[x+1 + (y+1) * width])
 					);
 			const int pixel_y = (int) (
-					(sobel_y[0][0] * input[x-1 + (y-1) * width]) + 
-					(sobel_y[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_y[0][0] * input[x-1 + (y-1) * width]) +
+					(sobel_y[0][1] * input[x   + (y-1) * width]) +
 					(sobel_y[0][2] * input[x+1 + (y-1) * width]) +
-					(sobel_y[1][0] * input[x-1 + (y  ) * width]) + 
-					(sobel_y[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_y[1][0] * input[x-1 + (y  ) * width]) +
+					(sobel_y[1][1] * input[x   + (y  ) * width]) +
 					(sobel_y[1][2] * input[x+1 + (y  ) * width]) +
-					(sobel_y[2][0] * input[x-1 + (y+1) * width]) + 
-					(sobel_y[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_y[2][0] * input[x-1 + (y+1) * width]) +
+					(sobel_y[2][1] * input[x   + (y+1) * width]) +
 					(sobel_y[2][2] * input[x+1 + (y+1) * width])
 					);
 
 			float magnitude = sqrt((float)(pixel_x * pixel_x + pixel_y * pixel_y));
 
-			if (magnitude < 0){ magnitude = 0; }
-			if (magnitude > 255){ magnitude = 255; }
+			if (magnitude < 0) {
+        magnitude = 0;
+      } else if (magnitude > 255) {
+        magnitude = 255;
+      }
 
 			output[x + y * width] = magnitude;
 		}
@@ -82,7 +82,6 @@ void sobel_filter_gpu(const uchar * input, uchar * output, const uint height, co
 	const int size = height * width * sizeof(uchar);
 
 	CudaSynchronizedTimer timer;
-
 
 	// Launch the kernel
 	const int grid_x = 64;
@@ -120,25 +119,25 @@ void sobel_filter_cpu(const uchar * input, uchar * output, const uint height, co
 		{
 
 			const int pixel_x = (int) (
-					(sobel_x[0][0] * input[x-1 + (y-1) * width]) + 
-					(sobel_x[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_x[0][0] * input[x-1 + (y-1) * width]) +
+					(sobel_x[0][1] * input[x   + (y-1) * width]) +
 					(sobel_x[0][2] * input[x+1 + (y-1) * width]) +
-					(sobel_x[1][0] * input[x-1 + (y  ) * width]) + 
-					(sobel_x[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_x[1][0] * input[x-1 + (y  ) * width]) +
+					(sobel_x[1][1] * input[x   + (y  ) * width]) +
 					(sobel_x[1][2] * input[x+1 + (y  ) * width]) +
-					(sobel_x[2][0] * input[x-1 + (y+1) * width]) + 
-					(sobel_x[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_x[2][0] * input[x-1 + (y+1) * width]) +
+					(sobel_x[2][1] * input[x   + (y+1) * width]) +
 					(sobel_x[2][2] * input[x+1 + (y+1) * width])
 					);
 			const int pixel_y = (int) (
-					(sobel_y[0][0] * input[x-1 + (y-1) * width]) + 
-					(sobel_y[0][1] * input[x   + (y-1) * width]) + 
+					(sobel_y[0][0] * input[x-1 + (y-1) * width]) +
+					(sobel_y[0][1] * input[x   + (y-1) * width]) +
 					(sobel_y[0][2] * input[x+1 + (y-1) * width]) +
-					(sobel_y[1][0] * input[x-1 + (y  ) * width]) + 
-					(sobel_y[1][1] * input[x   + (y  ) * width]) + 
+					(sobel_y[1][0] * input[x-1 + (y  ) * width]) +
+					(sobel_y[1][1] * input[x   + (y  ) * width]) +
 					(sobel_y[1][2] * input[x+1 + (y  ) * width]) +
-					(sobel_y[2][0] * input[x-1 + (y+1) * width]) + 
-					(sobel_y[2][1] * input[x   + (y+1) * width]) + 
+					(sobel_y[2][0] * input[x-1 + (y+1) * width]) +
+					(sobel_y[2][1] * input[x   + (y+1) * width]) +
 					(sobel_y[2][2] * input[x+1 + (y+1) * width])
 					);
 
