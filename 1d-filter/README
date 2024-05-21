@@ -1,0 +1,3 @@
+Our implementation for the 1D filter consists of 3 kernels in src/fir_gpu.cu
+Each kernel implements a different improvement and can be run by uncommenting the corresponding calls inside fir_gpu() [Lines 138 - 140]
+Please note that only a single kernel call should be uncommented at a time or the output might be incorrect or the profiling might be off.
